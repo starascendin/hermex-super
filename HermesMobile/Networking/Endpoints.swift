@@ -88,6 +88,7 @@ enum Endpoint {
     case cronResume
     case cronStatus(jobID: String?)
     case cronOutput(jobID: String, limit: Int?)
+    case cronDeliveryOptions
     case memory
     case memoryWrite
     case skills
@@ -273,6 +274,8 @@ enum Endpoint {
             return "/api/crons/status"
         case .cronOutput:
             return "/api/crons/output"
+        case .cronDeliveryOptions:
+            return "/api/crons/delivery-options"
         case .memory:
             return "/api/memory"
         case .memoryWrite:
