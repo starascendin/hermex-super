@@ -5,7 +5,7 @@ enum Endpoint {
     case authStatus
     case login
     case logout
-    case sessions
+    case sessions(includeArchived: Bool = false, archivedLimit: Int? = nil)
     case sessionsSearch(query: String, content: Bool, depth: Int)
     case session(id: String, includeMessages: Bool, messageLimit: Int?, messageBefore: Int?, expandRenderable: Bool = false)
     case sessionStatus(id: String)
@@ -294,6 +294,18 @@ enum Endpoint {
 
     var queryItems: [URLQueryItem] {
         switch self {
+        case let .sessions(includeArchived, archivedLimit):
+            // Opt-in (issue #17): the server's default response excludes archived
+            // rows, so the main list request stays byte-identical when off.
+            // `archived_limit` only means something alongside `include_archived=1`
+            // (`_query_positive_int` in upstream routes.py), so it is only sent then.
+            guard includeArchived else { return [] }
+
+            var items = [URLQueryItem(name: "include_archived", value: "1")]
+            if let archivedLimit {
+                items.append(URLQueryItem(name: "archived_limit", value: "\(archivedLimit)"))
+            }
+            return items
         case let .sessionsSearch(query, content, depth):
             return [
                 URLQueryItem(name: "q", value: query),

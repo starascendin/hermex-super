@@ -95,7 +95,7 @@ struct SettingsView: View {
 
                 SettingsCard(title: String(localized: "Archived Sessions")) {
                     NavigationLink {
-                        ArchivedSessionsView(server: server)
+                        ArchivedSessionsView(server: server, onAPIError: authManager.handleAPIError)
                     } label: {
                         SettingsAccessoryRow(title: String(localized: "Archived Sessions"), systemImage: "archivebox")
                     }

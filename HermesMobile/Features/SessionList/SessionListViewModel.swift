@@ -56,6 +56,10 @@ final class SessionListViewModel {
     private(set) var switchingActiveProfileName: String?
     private(set) var activeProfileErrorMessage: String?
     private(set) var mutatingSessionIDs: Set<String> = []
+    /// Total archived sessions reported by the last successful list load
+    /// (`archived_count`, issue #17). nil until a load succeeds or when an older
+    /// server omits the field — the Archived entry stays hidden then.
+    private(set) var archivedCount: Int?
 
     private(set) var remoteContentSearchSessionIDs: [String] = []
     private var activeRemoteSearchQuery: String?
@@ -171,7 +175,7 @@ final class SessionListViewModel {
         do {
             let response = try await client.sessions()
             let visibleSessions = (response.sessions ?? []).filter { $0.archived != true }
-            applySessions(visibleSessions, animation: animation)
+            applySessions(visibleSessions, archivedCount: response.archivedCount, animation: animation)
             isViewingCachedData = false
 
             if let modelContext {
@@ -922,14 +926,22 @@ final class SessionListViewModel {
         .joined(separator: " ")
     }
 
-    private func applySessions(_ newSessions: [SessionSummary], animation: Animation?) {
+    /// `archivedCount` is applied inside the same transaction as the rows so the
+    /// bottom Archived entry inserts/removes with the list mutation animation.
+    private func applySessions(
+        _ newSessions: [SessionSummary],
+        archivedCount newArchivedCount: Int?,
+        animation: Animation?
+    ) {
         guard let animation else {
             sessions = newSessions
+            archivedCount = newArchivedCount
             return
         }
 
         withAnimation(animation) {
             sessions = newSessions
+            archivedCount = newArchivedCount
         }
     }
 

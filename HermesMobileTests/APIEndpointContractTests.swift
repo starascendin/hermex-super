@@ -13,7 +13,21 @@ final class ContractReadinessTests: XCTestCase {
             .init(name: "auth status", method: "GET", endpoint: .authStatus, path: "/api/auth/status"),
             .init(name: "login", method: "POST", endpoint: .login, path: "/api/auth/login"),
             .init(name: "logout", method: "POST", endpoint: .logout, path: "/api/auth/logout"),
-            .init(name: "sessions", method: "GET", endpoint: .sessions, path: "/api/sessions"),
+            .init(name: "sessions", method: "GET", endpoint: .sessions(), path: "/api/sessions"),
+            .init(
+                name: "sessions including archived",
+                method: "GET",
+                endpoint: .sessions(includeArchived: true, archivedLimit: 3),
+                path: "/api/sessions",
+                query: ["include_archived": "1", "archived_limit": "3"]
+            ),
+            .init(
+                name: "sessions including archived without limit",
+                method: "GET",
+                endpoint: .sessions(includeArchived: true),
+                path: "/api/sessions",
+                query: ["include_archived": "1"]
+            ),
             .init(
                 name: "session search",
                 method: "GET",

@@ -114,6 +114,8 @@ struct SessionListView: View {
                     MemoryView(server: server, onAPIError: authManager.handleAPIError)
                 case .insights:
                     InsightsView(server: server, onAPIError: authManager.handleAPIError)
+                case .archived:
+                    ArchivedSessionsView(server: server, onAPIError: authManager.handleAPIError)
                 }
             }
             .sheet(item: $sessionExportShareItem) { item in
@@ -303,6 +305,11 @@ struct SessionListView: View {
                 showsWorkspace: showsSessionWorkspace,
                 actions: sessionRowActions
             )
+
+            if showsArchivedEntry {
+                archivedEntryRow
+                    .sessionsScreenListRow()
+            }
 
             Color.clear
                 .frame(height: 104)
@@ -518,6 +525,56 @@ struct SessionListView: View {
 
     private var automatedSessionVisibility: AutomatedSessionVisibility {
         AutomatedSessionVisibility(showsCron: showsCronSessions, showsCli: showsCliSessions)
+    }
+
+    /// Bottom-of-list entry to the Archived screen (issue #17). Hidden while
+    /// searching, offline (cached data cannot fetch archived rows), and when the
+    /// server reports zero archived sessions or omits `archived_count` (older
+    /// server) — so the list is unchanged for users with nothing archived.
+    private var showsArchivedEntry: Bool {
+        guard !isSearchingSessions, !viewModel.isViewingCachedData else { return false }
+        return (viewModel.archivedCount ?? 0) > 0
+    }
+
+    private var archivedEntryRow: some View {
+        HapticButton {
+            selectedUtilityDestination = .archived
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "archivebox")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 24)
+                    .accessibilityHidden(true)
+
+                Text("Archived Sessions")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+
+                if let archivedCount = viewModel.archivedCount {
+                    Text("\(archivedCount)")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(.thinMaterial, in: Capsule())
+                }
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "chevron.forward")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+            }
+            .padding(.horizontal, 24)
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.top, 12)
+        .accessibilityHint("Shows archived sessions.")
     }
 
     private var emptySessionsTitle: String {
@@ -1008,6 +1065,8 @@ enum SessionListUtilityDestination: Hashable, Identifiable {
     case skills
     case memory
     case insights
+    /// Archived sessions screen (issue #17), also reachable from Settings.
+    case archived
 
     var id: Self { self }
 }
