@@ -3,7 +3,7 @@ import Foundation
 enum HermesDeepLink {
     static var scheme: String {
         Bundle.main.object(forInfoDictionaryKey: "HermesURLScheme") as? String
-            ?? "hermes-agent"
+            ?? "hermes-agent-super"
     }
 
     static let sessionHost = "session"
