@@ -114,6 +114,8 @@ struct SessionListView: View {
                     MemoryView(server: server, onAPIError: authManager.handleAPIError)
                 case .insights:
                     InsightsView(server: server, onAPIError: authManager.handleAPIError)
+                case .liveKit:
+                    HermesLiveKitView(server: server, autoConnectOnAppear: true)
                 case .archived:
                     ArchivedSessionsView(server: server, onAPIError: authManager.handleAPIError)
                 }
@@ -1065,6 +1067,7 @@ enum SessionListUtilityDestination: Hashable, Identifiable {
     case skills
     case memory
     case insights
+    case liveKit
     /// Archived sessions screen (issue #17), also reachable from Settings.
     case archived
 

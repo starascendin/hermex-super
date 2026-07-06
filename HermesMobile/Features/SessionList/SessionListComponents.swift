@@ -121,6 +121,10 @@ struct SessionSidebarUtilityRows: View {
             SidebarNavButton(title: String(localized: "Insights"), assetImage: "LucideChartColumnIncreasing") {
                 openDestination(.insights)
             }
+
+            SidebarNavButton(title: String(localized: "Hermes Voice"), systemImage: "waveform.circle") {
+                openDestination(.liveKit)
+            }
         }
         .padding(.horizontal, 24)
     }
@@ -795,13 +799,32 @@ struct SessionListFloatingChatButtonStyle: ButtonStyle {
 
 struct SidebarNavButton: View {
     let title: String
-    let assetImage: String
+    let assetImage: String?
+    let systemImage: String?
     let action: () -> Void
+
+    init(title: String, assetImage: String, action: @escaping () -> Void) {
+        self.title = title
+        self.assetImage = assetImage
+        self.systemImage = nil
+        self.action = action
+    }
+
+    init(title: String, systemImage: String, action: @escaping () -> Void) {
+        self.title = title
+        self.assetImage = nil
+        self.systemImage = systemImage
+        self.action = action
+    }
 
     var body: some View {
         HapticButton(action: action) {
             HStack(spacing: 18) {
-                SidebarUtilityIcon(assetImage: assetImage)
+                if let assetImage {
+                    SidebarUtilityIcon(assetImage: assetImage)
+                } else if let systemImage {
+                    SidebarUtilitySystemIcon(systemImage: systemImage)
+                }
 
                 Text(title)
                     .font(.body.weight(.semibold))
@@ -815,6 +838,19 @@ struct SidebarNavButton: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
+    }
+}
+
+struct SidebarUtilitySystemIcon: View {
+    let systemImage: String
+    var tint: Color = .primary
+
+    var body: some View {
+        Image(systemName: systemImage)
+            .font(.system(size: 21, weight: .medium))
+            .foregroundStyle(tint)
+            .frame(width: 28)
+            .accessibilityHidden(true)
     }
 }
 

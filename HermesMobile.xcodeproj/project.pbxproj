@@ -10,6 +10,9 @@
 		05814DEA5DE4690F730B1E15 /* InsightsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 931EC010A2D940B0E42287A4 /* InsightsViewModel.swift */; };
 		26AB000000000000000000B1 /* ProvidersViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26AB000000000000000000F1 /* ProvidersViewModel.swift */; };
 		26AB000000000000000000B2 /* ProvidersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26AB000000000000000000F2 /* ProvidersView.swift */; };
+		B6E100000000000000000001 /* HermesLiveKitGatewayClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6E100000000000000000011 /* HermesLiveKitGatewayClient.swift */; };
+		B6E100000000000000000002 /* HermesLiveKitSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6E100000000000000000012 /* HermesLiveKitSession.swift */; };
+		B6E100000000000000000003 /* HermesLiveKitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6E100000000000000000013 /* HermesLiveKitView.swift */; };
 		26AB000000000000000000B3 /* APIClientProvidersTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26AB000000000000000000F3 /* APIClientProvidersTests.swift */; };
 		26AB000000000000000000B4 /* ProvidersViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26AB000000000000000000F4 /* ProvidersViewModelTests.swift */; };
 		1A2B3C4D5E6F700000000300 /* ServerAccount.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000301 /* ServerAccount.swift */; };
@@ -34,6 +37,7 @@
 		1A2B3C4D5E6F700000000007 /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = 1A2B3C4D5E6F700000000097 /* Highlightr */; };
 		1A2B3C4D5E6F700000000008 /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = 1A2B3C4D5E6F700000000098 /* KeychainAccess */; };
 		5417A7400000000000000092 /* SwiftMath in Frameworks */ = {isa = PBXBuildFile; productRef = 5417A7400000000000000091 /* SwiftMath */; };
+		B6E100000000000000000020 /* LiveKit in Frameworks */ = {isa = PBXBuildFile; productRef = B6E100000000000000000022 /* LiveKit */; };
 		1A2B3C4D5E6F7000000000A0 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F7000000000B0 /* KeychainStore.swift */; };
 		1A2B3C4D5E6F7000000000A1 /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F7000000000B1 /* AuthManager.swift */; };
 		1A2B3C4D5E6F7000000000A2 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F7000000000B2 /* APIClient.swift */; };
@@ -339,6 +343,9 @@
 		0485E1E1FFB64A24BB729CD4 /* SlashCommandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlashCommandTests.swift; sourceTree = "<group>"; };
 		351C0F1600000000000000A1 /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Shared.xcconfig; path = Config/Shared.xcconfig; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000301 /* ServerAccount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerAccount.swift; sourceTree = "<group>"; };
+		B6E100000000000000000011 /* HermesLiveKitGatewayClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HermesLiveKitGatewayClient.swift; sourceTree = "<group>"; };
+		B6E100000000000000000012 /* HermesLiveKitSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HermesLiveKitSession.swift; sourceTree = "<group>"; };
+		B6E100000000000000000013 /* HermesLiveKitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HermesLiveKitView.swift; sourceTree = "<group>"; };
 		B5A1000000000000000000A1 /* ServerRegistryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerRegistryTests.swift; sourceTree = "<group>"; };
 		0D1CE5F12B9E4D4D9E5A01C1 /* SlashCommandExecutor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlashCommandExecutor.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000010 /* HermesMobile.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HermesMobile.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -632,6 +639,7 @@
 				1A2B3C4D5E6F700000000007 /* Highlightr in Frameworks */,
 				1A2B3C4D5E6F700000000008 /* KeychainAccess in Frameworks */,
 				5417A7400000000000000092 /* SwiftMath in Frameworks */,
+				B6E100000000000000000020 /* LiveKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -880,6 +888,7 @@
 				1A2B3C4D5E6F7000000000C5 /* SessionList */,
 				1A2B3C4D5E6F7000000000C6 /* Chat */,
 				1A2B3C4D5E6F7000000000C7 /* Workspace */,
+				B6E100000000000000000010 /* HermesLiveKit */,
 				1A2B3C4D5E6F7000000000F7 /* Settings */,
 				B5A100000000000000000050 /* Share */,
 				3F91D2A54B9A4F66A2C01020 /* Tasks */,
@@ -1030,6 +1039,16 @@
 				1A2B3C4D5E6F7000000000EF /* CachedMessage.swift */,
 			);
 			path = Persistence;
+			sourceTree = "<group>";
+		};
+		B6E100000000000000000010 /* HermesLiveKit */ = {
+			isa = PBXGroup;
+			children = (
+				B6E100000000000000000011 /* HermesLiveKitGatewayClient.swift */,
+				B6E100000000000000000012 /* HermesLiveKitSession.swift */,
+				B6E100000000000000000013 /* HermesLiveKitView.swift */,
+			);
+			path = HermesLiveKit;
 			sourceTree = "<group>";
 		};
 		1A2B3C4D5E6F7000000000F7 /* Settings */ = {
@@ -1191,6 +1210,7 @@
 				1A2B3C4D5E6F700000000097 /* Highlightr */,
 				1A2B3C4D5E6F700000000098 /* KeychainAccess */,
 				5417A7400000000000000091 /* SwiftMath */,
+				B6E100000000000000000022 /* LiveKit */,
 			);
 			productName = HermesMobile;
 			productReference = 1A2B3C4D5E6F700000000010 /* HermesMobile.app */;
@@ -1308,6 +1328,7 @@
 				1A2B3C4D5E6F700000000093 /* XCRemoteSwiftPackageReference "Highlightr" */,
 				1A2B3C4D5E6F700000000099 /* XCRemoteSwiftPackageReference "KeychainAccess" */,
 				5417A7400000000000000090 /* XCRemoteSwiftPackageReference "SwiftMath" */,
+				B6E100000000000000000021 /* XCRemoteSwiftPackageReference "client-sdk-swift" */,
 			);
 			productRefGroup = 1A2B3C4D5E6F700000000032 /* Products */;
 			projectDirPath = "";
@@ -1421,6 +1442,9 @@
 				1A2B3C4D5E6F7000000000ED /* CachedMessage.swift in Sources */,
 				1A2B3C4D5E6F7000000000F1 /* CacheStore.swift in Sources */,
 				1A2B3C4D5E6F7000000000F5 /* SettingsView.swift in Sources */,
+				B6E100000000000000000001 /* HermesLiveKitGatewayClient.swift in Sources */,
+				B6E100000000000000000002 /* HermesLiveKitSession.swift in Sources */,
+				B6E100000000000000000003 /* HermesLiveKitView.swift in Sources */,
 				C012400000000000000004 /* AppIconSettingsSection.swift in Sources */,
 				1A2B3C4D5E6F70000000114 /* DefaultModelPickerView.swift in Sources */,
 				103200000000000000000002 /* DefaultProfilePickerView.swift in Sources */,
@@ -2115,6 +2139,14 @@
 				minimumVersion = 1.7.3;
 			};
 		};
+		B6E100000000000000000021 /* XCRemoteSwiftPackageReference "client-sdk-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/livekit/client-sdk-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.15.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -2152,6 +2184,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 5417A7400000000000000090 /* XCRemoteSwiftPackageReference "SwiftMath" */;
 			productName = SwiftMath;
+		};
+		B6E100000000000000000022 /* LiveKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B6E100000000000000000021 /* XCRemoteSwiftPackageReference "client-sdk-swift" */;
+			productName = LiveKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
