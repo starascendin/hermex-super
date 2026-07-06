@@ -1,0 +1,126 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROJECT_PATH="${PROJECT_PATH:-HermesMobile.xcodeproj}"
+SCHEME="${SCHEME:-HermesMobile}"
+CONFIGURATION="${CONFIGURATION:-Release}"
+BUILD_NUMBER="${BUILD_NUMBER:-$(date +%Y%m%d%H%M)}"
+BUILD_DIR="${BUILD_DIR:-build}"
+ARCHIVE_PATH="${ARCHIVE_PATH:-$BUILD_DIR/HermesAgentBranch.xcarchive}"
+EXPORT_PATH="${EXPORT_PATH:-$BUILD_DIR/HermesAgentBranchExport}"
+BRANCH_XCCONFIG="${BRANCH_XCCONFIG:-Config/BranchTestFlight.xcconfig}"
+EXPORT_OPTIONS_PLIST="${EXPORT_OPTIONS_PLIST:-Config/BranchTestFlightExportOptions.plist}"
+KEYCHAIN="${IOS_BUILD_KEYCHAIN:-$HOME/Library/Keychains/lifeos-build.keychain-db}"
+KEYCHAIN_PASSWORD_FILE="${IOS_BUILD_KEYCHAIN_PASSWORD_FILE:-$HOME/.config/hermex/ios-build-keychain-password}"
+SKIP_KEYCHAIN_PREP="${SKIP_IOS_BUILD_KEYCHAIN_PREP:-0}"
+
+if [[ -z "${IOS_BUILD_KEYCHAIN_PASSWORD:-}" && -r "$KEYCHAIN_PASSWORD_FILE" ]]; then
+  IOS_BUILD_KEYCHAIN_PASSWORD="$(<"$KEYCHAIN_PASSWORD_FILE")"
+  export IOS_BUILD_KEYCHAIN_PASSWORD
+fi
+
+auth_args=()
+has_auth_args=0
+if [[ -n "${APP_STORE_CONNECT_KEY_PATH:-}" || -n "${APP_STORE_CONNECT_KEY_ID:-}" || -n "${APP_STORE_CONNECT_ISSUER_ID:-}" ]]; then
+  : "${APP_STORE_CONNECT_KEY_PATH:?Set APP_STORE_CONNECT_KEY_PATH, APP_STORE_CONNECT_KEY_ID, and APP_STORE_CONNECT_ISSUER_ID together.}"
+  : "${APP_STORE_CONNECT_KEY_ID:?Set APP_STORE_CONNECT_KEY_PATH, APP_STORE_CONNECT_KEY_ID, and APP_STORE_CONNECT_ISSUER_ID together.}"
+  : "${APP_STORE_CONNECT_ISSUER_ID:?Set APP_STORE_CONNECT_KEY_PATH, APP_STORE_CONNECT_KEY_ID, and APP_STORE_CONNECT_ISSUER_ID together.}"
+  has_auth_args=1
+  auth_args=(
+    -authenticationKeyPath "$APP_STORE_CONNECT_KEY_PATH"
+    -authenticationKeyID "$APP_STORE_CONNECT_KEY_ID"
+    -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID"
+  )
+fi
+
+prepare_signing_keychain() {
+  if [[ "$SKIP_KEYCHAIN_PREP" == "1" ]]; then
+    echo "Skipping signing keychain prep because SKIP_IOS_BUILD_KEYCHAIN_PREP=1."
+    return
+  fi
+
+  if [[ ! -f "$KEYCHAIN" ]]; then
+    echo "Missing signing keychain: $KEYCHAIN" >&2
+    echo "Create/import the iOS signing keychain before uploading to TestFlight." >&2
+    exit 1
+  fi
+
+  if [[ -z "${IOS_BUILD_KEYCHAIN_PASSWORD:-}" && ! -t 0 ]]; then
+    if security show-keychain-info "$KEYCHAIN" >/dev/null 2>&1; then
+      echo "Signing keychain is already unlocked; continuing without keychain prep."
+      return
+    else
+      cat >&2 <<EOF
+Signing keychain is locked and this shell cannot prompt for its password.
+
+Run this from an interactive terminal so the keychain helper can prompt, or set
+IOS_BUILD_KEYCHAIN_PASSWORD for this command. If you already unlocked and
+prepared $KEYCHAIN in the same login session, rerun after confirming:
+
+  security show-keychain-info "$KEYCHAIN"
+EOF
+      exit 1
+    fi
+  fi
+
+  if command -v prepare-ios-signing-keychain >/dev/null 2>&1; then
+    prepare-ios-signing-keychain
+    return
+  fi
+
+  "$HOME/bin/prepare-ios-signing-keychain"
+}
+
+prepare_signing_keychain
+mkdir -p "$BUILD_DIR"
+rm -rf "$ARCHIVE_PATH" "$EXPORT_PATH"
+
+echo "Archiving $SCHEME build $BUILD_NUMBER for Hermex Branch..."
+if [[ "$has_auth_args" == "1" ]]; then
+  xcodebuild \
+    -project "$PROJECT_PATH" \
+    -scheme "$SCHEME" \
+    -configuration "$CONFIGURATION" \
+    -destination "generic/platform=iOS" \
+    -archivePath "$ARCHIVE_PATH" \
+    -xcconfig "$BRANCH_XCCONFIG" \
+    -allowProvisioningUpdates \
+    "${auth_args[@]}" \
+    DEVELOPMENT_TEAM="87BJNUS53C" \
+    CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+    OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN" \
+    archive
+else
+  xcodebuild \
+    -project "$PROJECT_PATH" \
+    -scheme "$SCHEME" \
+    -configuration "$CONFIGURATION" \
+    -destination "generic/platform=iOS" \
+    -archivePath "$ARCHIVE_PATH" \
+    -xcconfig "$BRANCH_XCCONFIG" \
+    -allowProvisioningUpdates \
+    DEVELOPMENT_TEAM="87BJNUS53C" \
+    CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+    OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN" \
+    archive
+fi
+
+echo "Uploading archive to App Store Connect..."
+if [[ "$has_auth_args" == "1" ]]; then
+  xcodebuild \
+    -exportArchive \
+    -archivePath "$ARCHIVE_PATH" \
+    -exportOptionsPlist "$EXPORT_OPTIONS_PLIST" \
+    -exportPath "$EXPORT_PATH" \
+    -allowProvisioningUpdates \
+    "${auth_args[@]}"
+else
+  xcodebuild \
+    -exportArchive \
+    -archivePath "$ARCHIVE_PATH" \
+    -exportOptionsPlist "$EXPORT_OPTIONS_PLIST" \
+    -exportPath "$EXPORT_PATH" \
+    -allowProvisioningUpdates
+fi
+
+echo "Uploaded Hermex Branch build $BUILD_NUMBER."

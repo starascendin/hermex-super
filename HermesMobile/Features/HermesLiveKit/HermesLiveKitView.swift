@@ -2,14 +2,23 @@ import SwiftUI
 
 struct HermesLiveKitView: View {
     let server: URL
+    var autoConnectOnAppear = false
 
     @StateObject private var session = HermesLiveKitSession()
     @State private var mode: HermesLiveKitMode = .butler
+    @State private var gatewayURLString: String
     @State private var tokenPath = HermesLiveKitGatewayConfiguration.default.tokenPath
     @State private var dispatchPath = HermesLiveKitGatewayConfiguration.default.dispatchPath
     @State private var dispatchesAgent = HermesLiveKitGatewayConfiguration.default.dispatchesAgent
     @State private var draftMessage = ""
+    @State private var didAutoConnect = false
     @AppStorage(SessionIdentitySettings.displayNameKey) private var identityDisplayName = ""
+
+    init(server: URL, autoConnectOnAppear: Bool = false) {
+        self.server = server
+        self.autoConnectOnAppear = autoConnectOnAppear
+        _gatewayURLString = State(initialValue: Self.defaultGatewayURLString(for: server))
+    }
 
     var body: some View {
         ScrollView {
@@ -24,6 +33,9 @@ struct HermesLiveKitView: View {
         .background(Color(.systemBackground))
         .navigationTitle("Hermes Voice")
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            await autoConnectIfNeeded()
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 if case .connected = session.connectionState {
@@ -35,12 +47,48 @@ struct HermesLiveKitView: View {
         }
     }
 
+    private func autoConnectIfNeeded() async {
+        guard autoConnectOnAppear, !didAutoConnect else { return }
+        didAutoConnect = true
+        await connect()
+    }
+
+    private func connect() async {
+        guard let gatewayURL else { return }
+        await session.connect(
+            server: gatewayURL,
+            configuration: configuration,
+            mode: mode,
+            participantName: participantName
+        )
+    }
+
     private var configuration: HermesLiveKitGatewayConfiguration {
         .init(
             tokenPath: tokenPath.trimmingCharacters(in: .whitespacesAndNewlines),
             dispatchPath: dispatchPath.trimmingCharacters(in: .whitespacesAndNewlines),
             dispatchesAgent: dispatchesAgent
         )
+    }
+
+    private var gatewayURL: URL? {
+        let trimmed = gatewayURLString.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        return URL(string: trimmed)
+    }
+
+    private static func defaultGatewayURLString(for server: URL) -> String {
+        guard var components = URLComponents(url: server, resolvingAgainstBaseURL: false),
+              components.host != nil
+        else {
+            return server.absoluteString
+        }
+
+        components.port = 8787
+        components.path = ""
+        components.query = nil
+        components.fragment = nil
+        return components.url?.absoluteString ?? server.absoluteString
     }
 
     private var statusCard: some View {
@@ -55,7 +103,7 @@ struct HermesLiveKitView: View {
                     Text(session.connectionState.title)
                         .font(AppFont.headline())
 
-                    Text(server.absoluteString)
+                    Text(gatewayURLString)
                         .font(AppFont.caption())
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
@@ -78,12 +126,7 @@ struct HermesLiveKitView: View {
                         if case .connected = session.connectionState {
                             await session.disconnect()
                         } else {
-                            await session.connect(
-                                server: server,
-                                configuration: configuration,
-                                mode: mode,
-                                participantName: participantName
-                            )
+                            await connect()
                         }
                     }
                 }
@@ -114,6 +157,13 @@ struct HermesLiveKitView: View {
 
     private var gatewayCard: some View {
         liveKitCard(title: String(localized: "Gateway")) {
+            TextField("Gateway URL", text: $gatewayURLString)
+                .keyboardType(.URL)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .textFieldStyle(.roundedBorder)
+                .disabled(isConnected)
+
             TextField("Token path", text: $tokenPath)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
@@ -132,6 +182,12 @@ struct HermesLiveKitView: View {
                     .autocorrectionDisabled()
                     .textFieldStyle(.roundedBorder)
                     .disabled(isConnected)
+            }
+
+            if gatewayURL == nil {
+                Text("Enter a valid LiveKit gateway URL.")
+                    .font(AppFont.caption())
+                    .foregroundStyle(.orange)
             }
         }
     }
@@ -224,6 +280,7 @@ struct HermesLiveKitView: View {
     private var isPrimaryButtonDisabled: Bool {
         if case .connecting = session.connectionState { return true }
         if case .disconnecting = session.connectionState { return true }
+        if gatewayURL == nil { return true }
         return false
     }
 

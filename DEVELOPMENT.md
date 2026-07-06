@@ -102,7 +102,7 @@ XcodeBuildMCP is the preferred local validation path for feature and bug-fix sli
 - Scheme: `HermesMobile`
 - Configuration: `Debug`
 - Simulator: `iPhone 17`
-- Bundle ID: `com.uzairansar.hermesmobile`
+- Bundle ID: `com.bryanliu.superhermex`
 
 After each completed implementation slice:
 
@@ -116,7 +116,7 @@ After each completed implementation slice:
 Agent/MCP flow:
 
 - Call `session_show_defaults` before the first local build/run/test.
-- If defaults are missing, set project `HermesMobile.xcodeproj`, scheme `HermesMobile`, configuration `Debug`, simulator `iPhone 17`, and bundle ID `com.uzairansar.hermesmobile`.
+- If defaults are missing, set project `HermesMobile.xcodeproj`, scheme `HermesMobile`, configuration `Debug`, simulator `iPhone 17`, and bundle ID `com.bryanliu.superhermex`.
 - Use `test_sim` for XCTest validation.
 - Use `build_run_sim` to build, install, launch, and open Simulator for manual testing.
 - Use `screenshot`, UI inspection, and log capture only when they help validate the slice.
@@ -186,10 +186,10 @@ Current status:
 - App Store Connect app name: `Hermex`.
 - Xcode target/scheme name: `HermesMobile`.
 - iPhone home-screen display name: `Hermex`.
-- Bundle ID: `com.uzairansar.hermesmobile`.
-- Test bundle ID: `com.uzairansar.hermesmobile.tests`.
-- SKU: `hermes-mobile-ios`.
-- Apple Developer Team ID: `6GYD9C9N6R`.
+- Bundle ID: `com.bryanliu.superhermex`.
+- Test bundle ID: `com.bryanliu.superhermex.tests`.
+- SKU: `hermex-super-ios`.
+- Apple Developer Team ID: `87BJNUS53C`.
 - Signing uses Xcode automatic signing.
 - Export compliance is declared in `Info.plist` with `ITSAppUsesNonExemptEncryption = NO`; the app does not implement custom/proprietary encryption and uses normal Apple/platform networking security.
 - App icon uses owner-supplied light and dark assets in `AppIcon.appiconset`.
@@ -202,8 +202,8 @@ Current status:
 
 After merging the repo rebrand slice, update App Store Connect metadata separately:
 
-1. Production app (`com.uzairansar.hermesmobile`): rename listing from `Hermes Agent Mobile` → `Hermex`.
-2. Branch TestFlight app (`com.uzairansar.hermesmobile.branch`): rename listing from `Hermes Agent Branch` → `Hermex Branch`.
+1. Production app (`com.bryanliu.superhermex`): rename listing from `Hermes Agent Mobile` → `Hermex`.
+2. Branch TestFlight app (`com.bryanliu.superhermex.branch`): rename listing from `Hermes Agent Branch` → `Hermex Branch`.
 3. Update TestFlight/review notes and any metadata copy that still says the old app name.
 4. Upload a build and confirm TestFlight shows **Hermex** / **Hermex Branch** on the home screen after processing.
 
@@ -212,43 +212,44 @@ After merging the repo rebrand slice, update App Store Connect metadata separate
 When the owner says **"push to branch testflight"**, upload the current *feature branch*
 to the side-by-side **Hermex Branch** internal TestFlight app. This is a TestFlight
 upload, **not** a Git push. Never merge, Git push, or upload the production
-`com.uzairansar.hermesmobile` TestFlight app unless the owner explicitly asks.
+`com.bryanliu.superhermex` TestFlight app unless the owner explicitly asks.
 
 Branch TestFlight app identity:
 
 - App Store Connect app name: `Hermex Branch`
-- Main bundle ID: `com.uzairansar.hermesmobile.branch`
-- Share extension bundle ID: `com.uzairansar.hermesmobile.branch.shareextension`
-- Live Activity widget bundle ID: `com.uzairansar.hermesmobile.branch.liveactivitywidget`
+- Main bundle ID: `com.bryanliu.superhermex.branch`
+- Share extension bundle ID: `com.bryanliu.superhermex.branch.shareextension`
+- Live Activity widget bundle ID: `com.bryanliu.superhermex.branch.liveactivitywidget`
 - Display name: `Hermex Branch`
-- App group: `group.com.uzairansar.hermesmobile.branch`
+- App group: `group.com.bryanliu.superhermex.branch`
 - URL scheme: `hermes-agent-branch`
-- SKU: `hermes-mobile-ios-branch`
+- SKU: `hermex-super-ios-branch`
 
 Steps:
 
 1. Validate the branch first: at minimum `git diff --check` plus a simulator build; run
    focused or full tests based on the branch's risk.
-2. Use a unique `CURRENT_PROJECT_VERSION` for every upload — prefer a timestamp-like
-   number such as `YYYYMMDDHHMM`.
-3. Archive with the reusable branch build config `Config/BranchTestFlight.xcconfig`:
+2. Run the project script. It prepares the local signing keychain, uses a timestamp-like
+   `CURRENT_PROJECT_VERSION` by default, archives with the branch build config, and
+   uploads with the branch export config:
 
    ```zsh
-   xcodebuild -project HermesMobile.xcodeproj -scheme HermesMobile -configuration Release \
-     -destination 'generic/platform=iOS' -archivePath build/HermesAgentBranch.xcarchive \
-     -xcconfig Config/BranchTestFlight.xcconfig CURRENT_PROJECT_VERSION=<unique-build-number> \
-     archive -allowProvisioningUpdates
+   scripts/push-branch-testflight
    ```
 
-4. Upload with the reusable export config `Config/BranchTestFlightExportOptions.plist`:
+   To force a specific build number:
 
    ```zsh
-   xcodebuild -exportArchive -archivePath build/HermesAgentBranch.xcarchive \
-     -exportOptionsPlist Config/BranchTestFlightExportOptions.plist \
-     -exportPath build/HermesAgentBranchExport -allowProvisioningUpdates
+   BUILD_NUMBER=<unique-build-number> scripts/push-branch-testflight
    ```
 
-5. After upload succeeds, tell the owner the version/build number and that App Store
+   If the script reports that the signing keychain is locked in a non-interactive shell,
+   rerun it from an interactive terminal so the helper can prompt for the keychain
+   password, or set `IOS_BUILD_KEYCHAIN_PASSWORD` for that command. If the keychain was
+   already unlocked and prepared in the same login session, rerun with
+   `SKIP_IOS_BUILD_KEYCHAIN_PREP=1`.
+
+3. After upload succeeds, tell the owner the version/build number and that App Store
    Connect/TestFlight may need processing time before it appears on the phone.
 
 Manual internal TestFlight release flow:
@@ -268,7 +269,7 @@ GitHub Actions internal TestFlight flow:
    - `APP_STORE_CONNECT_KEY_ID`: the App Store Connect API key ID.
    - `APP_STORE_CONNECT_ISSUER_ID`: the App Store Connect issuer ID.
    - `APP_STORE_CONNECT_PRIVATE_KEY`: the full `.p8` private key contents. A one-line value with escaped `\n` separators also works.
-3. Use an App Store Connect team API key with enough access to upload builds and let `xcodebuild -allowProvisioningUpdates` manage automatic signing for Team ID `6GYD9C9N6R`. If provisioning fails in CI, check the API key role, Apple Developer agreements, and App Store Connect access before changing the project to manual signing.
+3. Use an App Store Connect team API key with enough access to upload builds and let `xcodebuild -allowProvisioningUpdates` manage automatic signing for Team ID `87BJNUS53C`. If provisioning fails in CI, check the API key role, Apple Developer agreements, and App Store Connect access before changing the project to manual signing.
 4. Run the `Internal TestFlight` workflow manually from the GitHub Actions tab after the workflow file exists on the default branch.
 5. Select `master` as the workflow ref, set `confirm_internal_only` to `INTERNAL`, and leave `build_number` blank so the workflow selects the next App Store Connect build number for the current marketing version.
 6. The workflow archives the Release build, uploads directly to App Store Connect, and uses `testFlightInternalTestingOnly = true` so uploaded builds cannot be promoted to external TestFlight or App Store distribution.
