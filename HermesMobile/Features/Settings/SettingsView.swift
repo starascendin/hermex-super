@@ -362,6 +362,19 @@ struct SettingsView: View {
                     SettingsDivider()
 
                     NavigationLink {
+                        HermesLiveKitView(server: server)
+                    } label: {
+                        SettingsAccessoryRow(
+                            title: String(localized: "Hermes Voice"),
+                            systemImage: "waveform.circle"
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Opens the Hermes LiveKit voice gateway.")
+
+                    SettingsDivider()
+
+                    NavigationLink {
                         CustomHeadersSettingsView(authManager: authManager)
                     } label: {
                         SettingsAccessoryRow(
