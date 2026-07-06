@@ -53,6 +53,11 @@ private struct ComposerStatusView: View {
     }
 }
 
+private enum ComposerInputMode {
+    case keyboard
+    case voice
+}
+
 struct MessageComposerView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
@@ -110,6 +115,7 @@ struct MessageComposerView: View {
     let uploadAttachmentErrorMessage: String?
     let onSend: () -> Void
     let onSendVoiceNote: (Data, String) -> Void
+    let onVoiceNoteRecordingStart: () -> Void
     let onCancel: () -> Void
     let onSelectModel: (ModelCatalogOption) -> Void
     let onModelPickerOpen: () async -> Void
@@ -152,6 +158,7 @@ struct MessageComposerView: View {
     @State private var voiceNoteRecorder = ComposerVoiceNoteRecorder()
     @State private var voiceNoteCancelArmed = false
     @State private var didAutoStartVoiceInput = false
+    @State private var inputMode: ComposerInputMode = .keyboard
 
     private var showsSlashAutocomplete: Bool {
         let query = draftMessage.drop(while: { $0.isWhitespace })
@@ -294,18 +301,36 @@ struct MessageComposerView: View {
                         onPreview: onPreviewAttachment
                     )
 
-                    ComposerTextInputView(
-                        text: $draftMessage,
-                        isFocused: $isFocused,
-                        inputHeight: $textInputHeight,
-                        measuredHeight: $textFieldHeight,
-                        isDisabled: isOfflineReadOnly,
-                        verticalPadding: textFieldVerticalPadding,
-                        onPasteFileProviders: onPasteFileProviders,
-                        onPasteFileURLs: onPasteFileURLs,
-                        onPasteImageProviders: onPasteImageProviders,
-                        onPasteImages: onPasteImages
-                    )
+                    if inputMode == .voice {
+                        ComposerHoldToTalkButton(
+                            isDisabled: isVoiceNoteRecordingDisabled,
+                            isRecording: voiceNoteRecorder.isRecording,
+                            isCancelArmed: voiceNoteCancelArmed,
+                            onRecordingStart: startVoiceNoteRecording,
+                            onRecordingDragChanged: { height in
+                                voiceNoteCancelArmed = ComposerVoiceNoteGesture.isCancelArmed(dragTranslationHeight: height)
+                            },
+                            onRecordingEnd: { height in
+                                finishVoiceNote(translationHeight: height)
+                            }
+                        )
+                        .padding(.horizontal, 12)
+                        .padding(.top, 10)
+                        .padding(.bottom, 8)
+                    } else {
+                        ComposerTextInputView(
+                            text: $draftMessage,
+                            isFocused: $isFocused,
+                            inputHeight: $textInputHeight,
+                            measuredHeight: $textFieldHeight,
+                            isDisabled: isOfflineReadOnly,
+                            verticalPadding: textFieldVerticalPadding,
+                            onPasteFileProviders: onPasteFileProviders,
+                            onPasteFileURLs: onPasteFileURLs,
+                            onPasteImageProviders: onPasteImageProviders,
+                            onPasteImages: onPasteImages
+                        )
+                    }
 
                     HStack(alignment: .center, spacing: 12) {
                         composerPlusMenu
@@ -318,20 +343,7 @@ struct MessageComposerView: View {
 
                         Spacer(minLength: 0)
 
-                        ComposerVoiceControlButton(
-                            isListening: voiceInput.isListening,
-                            isDisabled: isVoiceInputDisabled,
-                            color: metaControlColor,
-                            isRecordingVoiceNote: voiceNoteRecorder.isRecording,
-                            onTap: toggleVoiceInput,
-                            onRecordingStart: startVoiceNoteRecording,
-                            onRecordingDragChanged: { height in
-                                voiceNoteCancelArmed = ComposerVoiceNoteGesture.isCancelArmed(dragTranslationHeight: height)
-                            },
-                            onRecordingEnd: { height in
-                                finishVoiceNote(translationHeight: height)
-                            }
-                        )
+                        voiceModeControl
 
                         Button(action: actionButtonTapped) {
                             actionButtonLabel
@@ -623,6 +635,47 @@ struct MessageComposerView: View {
                 ]
             )
         ])
+    }
+
+    @ViewBuilder
+    private var voiceModeControl: some View {
+        if inputMode == .voice {
+            Button {
+                inputMode = .keyboard
+                requestTextViewFocusIfPossible()
+            } label: {
+                Image(systemName: "keyboard")
+                    .font(.system(size: 18, weight: .regular))
+                    .frame(width: 28, height: 28)
+                    .chatMinimumHitTarget(in: Circle())
+                    .foregroundStyle(metaControlColor)
+            }
+            .buttonStyle(.chatTactile(.icon))
+            .disabled(voiceNoteRecorder.isRecording)
+            .accessibilityLabel("Keyboard")
+        } else {
+            ComposerVoiceControlButton(
+                isListening: voiceInput.isListening,
+                isDisabled: isVoiceInputDisabled,
+                color: metaControlColor,
+                isRecordingVoiceNote: voiceNoteRecorder.isRecording,
+                onTap: {
+                    if trimmedDraftMessage.isEmpty {
+                        inputMode = .voice
+                        isFocused = false
+                    } else {
+                        toggleVoiceInput()
+                    }
+                },
+                onRecordingStart: startVoiceNoteRecording,
+                onRecordingDragChanged: { height in
+                    voiceNoteCancelArmed = ComposerVoiceNoteGesture.isCancelArmed(dragTranslationHeight: height)
+                },
+                onRecordingEnd: { height in
+                    finishVoiceNote(translationHeight: height)
+                }
+            )
+        }
     }
 
     @ViewBuilder
@@ -1028,6 +1081,8 @@ struct MessageComposerView: View {
     @MainActor
     private func startVoiceNoteRecording() {
         guard !isVoiceNoteRecordingDisabled, !voiceNoteRecorder.isRecording else { return }
+
+        onVoiceNoteRecordingStart()
 
         if voiceInput.isListening {
             voiceInput.stopKeepingTranscript()

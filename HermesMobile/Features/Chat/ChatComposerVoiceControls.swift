@@ -17,6 +17,138 @@ struct ComposerVoiceStatusView: View {
     }
 }
 
+/// WeChat-style hold-to-talk surface for the composer voice mode. Release sends;
+/// slide up past `ComposerVoiceNoteGesture.cancelTranslationThreshold` cancels.
+struct ComposerHoldToTalkButton: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    let isDisabled: Bool
+    let isRecording: Bool
+    let isCancelArmed: Bool
+    let onRecordingStart: () -> Void
+    let onRecordingDragChanged: (CGFloat) -> Void
+    let onRecordingEnd: (CGFloat) -> Void
+
+    @State private var isPressing = false
+    @State private var didTriggerRecording = false
+    @State private var holdWorkItem: DispatchWorkItem?
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: iconName)
+                .font(.system(size: 18, weight: .semibold))
+
+            Text(title)
+                .font(AppFont.body(weight: .semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        }
+        .frame(maxWidth: .infinity, minHeight: 46)
+        .padding(.horizontal, 16)
+        .background(background)
+        .foregroundStyle(foreground)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(borderColor, lineWidth: isRecording ? 1.5 : 1)
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .opacity(isDisabled && !isRecording ? 0.45 : 1)
+        .scaleEffect(isRecording ? 1.01 : 1)
+        .animation(.spring(response: 0.22, dampingFraction: 0.8), value: isRecording)
+        .animation(ChatMotion.quickState(reduceMotion: reduceMotion), value: isCancelArmed)
+        .gesture(pressGesture)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityHint(Text("Hold to record, release to send."))
+        .accessibilityAction(named: Text("Record voice note")) {
+            if !isDisabled {
+                didTriggerRecording = true
+                onRecordingStart()
+            }
+        }
+    }
+
+    private var title: String {
+        if isCancelArmed { return String(localized: "Release to Cancel") }
+        if isRecording { return String(localized: "Release to Send") }
+        return String(localized: "Hold to Talk")
+    }
+
+    private var iconName: String {
+        isCancelArmed ? "xmark.circle.fill" : "mic.fill"
+    }
+
+    private var foreground: Color {
+        if isCancelArmed { return .red }
+        return isRecording ? .white : .primary
+    }
+
+    private var borderColor: Color {
+        if isCancelArmed { return .red.opacity(0.45) }
+        return isRecording ? .blue.opacity(0.35) : Color(.separator)
+    }
+
+    private var background: some ShapeStyle {
+        if isCancelArmed {
+            return AnyShapeStyle(Color.red.opacity(0.12))
+        }
+        if isRecording {
+            return AnyShapeStyle(Color.blue)
+        }
+        return AnyShapeStyle(Color(.secondarySystemBackground))
+    }
+
+    private var accessibilityLabel: Text {
+        if isCancelArmed { return Text("Release to cancel voice note") }
+        if isRecording { return Text("Release to send voice note") }
+        return Text("Hold to talk")
+    }
+
+    private var pressGesture: some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { value in
+                if !isPressing {
+                    isPressing = true
+                    scheduleRecordingStart()
+                }
+                if isRecording {
+                    onRecordingDragChanged(value.translation.height)
+                }
+            }
+            .onEnded { value in
+                cancelScheduledRecordingStart()
+                let triggered = didTriggerRecording
+                isPressing = false
+                didTriggerRecording = false
+
+                if triggered {
+                    onRecordingEnd(value.translation.height)
+                }
+            }
+    }
+
+    private func scheduleRecordingStart() {
+        guard !isDisabled else { return }
+
+        didTriggerRecording = false
+        let item = DispatchWorkItem {
+            didTriggerRecording = true
+            onRecordingStart()
+        }
+        holdWorkItem = item
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + ComposerVoiceNoteGesture.holdActivationDelay,
+            execute: item
+        )
+    }
+
+    private func cancelScheduledRecordingStart() {
+        holdWorkItem?.cancel()
+        holdWorkItem = nil
+    }
+}
+
 /// The composer mic. A quick **tap** toggles on-device dictation (unchanged); a
 /// **press-and-hold** records a server-transcribed voice note, releasing to send
 /// and sliding up to cancel. Both paths run through a single

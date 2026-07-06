@@ -49,35 +49,32 @@ Read by every agent (Codex, Claude Code, …); keep it tool-agnostic.
 ## Tooling
 - The maintainer works in **VS Code**, not the Xcode UI — prefer terminal validation;
   ask to open Xcode only when the terminal can't answer.
-- Use **XcodeBuildMCP** for simulator build/test/run/log; fall back to raw
-  `xcodebuild`/`xcrun simctl` for release/archive or low-level diagnosis. Defaults live
-  in `.xcodebuildmcp/config.yaml` (scheme `HermesMobile`, sim **iPhone 17**); if that
-  sim is missing, pick a nearby iPhone and say which.
-- **Simulator installs must be signed.** Never install a `CODE_SIGNING_ALLOWED=NO`
-  build on the simulator for manual testing — that flag is for compile-only checks
-  (see `TESTFLIGHT.md`) and strips entitlements, so Keychain writes fail with
-  `errSecMissingEntitlement` and login breaks. Put the app on the sim via XcodeBuildMCP
-  `build_run_sim` or a plain signed Debug build (no signing-disabling flags), then install/launch.
-- Before asking for review or committing a slice: run the full XCTest suite, and
-  build + launch the app for the human's manual simulator test when UI changed.
+- **Do not run simulator validation for this repo.** Do not use XcodeBuildMCP simulator
+  run/install/log flows, `xcrun simctl`, or simulator launch checks unless the human
+  explicitly asks for simulator work in that turn.
+- For runtime/manual app validation, build and upload the real app to TestFlight with
+  `scripts/push-testflight` so the human can test on device. Do not substitute a
+  simulator run for a requested TestFlight push.
+- Before asking for review or committing a slice: run practical terminal validation
+  that does not launch the simulator, then use TestFlight for UI/runtime validation
+  when the human asks to try the app.
 
 ## App identity (resolved via xcconfig — not grep-able)
 Bundle ID `com.bryanliu.superhermex` · tests `….tests` · Team `87BJNUS53C` · SKU `hermex-super-ios`.
 
-## "push to branch testflight" (maintainer-only)
-Upload the current branch to the side-by-side **Hermex Branch** internal TestFlight app
-(`com.bryanliu.superhermex.branch`) — a TestFlight upload, **not** a git push.
+## TestFlight upload (maintainer-only)
+Upload only the real SuperHermex app (`com.bryanliu.superhermex`) to TestFlight.
+There is no side-by-side branch TestFlight app in this repo anymore. Do not add an
+`APP_IDENTIFIER_SUFFIX`, suffixed bundle ID, branch xcconfig, or branch upload script.
 Requires the maintainer's App Store Connect access and the local iOS signing keychain.
-Run `scripts/push-branch-testflight`; it prepares `lifeos-build.keychain-db`, uses a
-timestamp build number by default, archives with `Config/BranchTestFlight.xcconfig`, and
-uploads with `Config/BranchTestFlightExportOptions.plist`. Never touch the production
-`com.bryanliu.superhermex` app unless explicitly asked.
+Run `scripts/push-testflight`; it resolves the bundle ID before archiving and refuses
+to upload anything other than `com.bryanliu.superhermex`.
 
 ## Working with the human
 - Surface tradeoffs in plain English before non-obvious choices; when in doubt, ask.
 - Ask before touching anything under the spec's "Open questions."
 - After each slice, report: (1) files changed (2) build/test command run (3) result
-  (4) next suggested step — plus a short manual simulator test plan when UI changed.
+  (4) next suggested step — plus a short TestFlight/device test plan when UI changed.
 
 ## Keep this file honest
 If something here surprises you or contradicts the project, tell the developer and

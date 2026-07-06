@@ -203,44 +203,41 @@ Current status:
 After merging the repo rebrand slice, update App Store Connect metadata separately:
 
 1. Production app (`com.bryanliu.superhermex`): rename listing from `Hermes Agent Mobile` → `Hermex`.
-2. Branch TestFlight app (`com.bryanliu.superhermex.branch`): rename listing from `Hermes Agent Branch` → `Hermex Branch`.
-3. Update TestFlight/review notes and any metadata copy that still says the old app name.
-4. Upload a build and confirm TestFlight shows **Hermex** / **Hermex Branch** on the home screen after processing.
+2. Update TestFlight/review notes and any metadata copy that still says the old app name.
+3. Upload a build and confirm TestFlight shows **Hermex** on the home screen after processing.
 
-### Branch TestFlight upload (CLI) — the "push to branch testflight" command
+### TestFlight upload (CLI)
 
-When the owner says **"push to branch testflight"**, upload the current *feature branch*
-to the side-by-side **Hermex Branch** internal TestFlight app. This is a TestFlight
-upload, **not** a Git push. Never merge, Git push, or upload the production
-`com.bryanliu.superhermex` TestFlight app unless the owner explicitly asks.
+When the owner asks for a TestFlight upload, upload only the real SuperHermex app.
+This is a TestFlight upload, **not** a Git push. Do not add a suffixed or side-by-side
+bundle ID.
 
-Branch TestFlight app identity:
+TestFlight app identity:
 
-- App Store Connect app name: `Hermex Branch`
-- Main bundle ID: `com.bryanliu.superhermex.branch`
-- Share extension bundle ID: `com.bryanliu.superhermex.branch.shareextension`
-- Live Activity widget bundle ID: `com.bryanliu.superhermex.branch.liveactivitywidget`
-- Display name: `Hermex Branch`
-- App group: `group.com.bryanliu.superhermex.branch`
-- URL scheme: `hermes-agent-branch`
-- SKU: `hermex-super-ios-branch`
+- App Store Connect app name: `Hermex`
+- Main bundle ID: `com.bryanliu.superhermex`
+- Share extension bundle ID: `com.bryanliu.superhermex.shareextension`
+- Live Activity widget bundle ID: `com.bryanliu.superhermex.liveactivitywidget`
+- Display name: `hermex-super`
+- App group: `group.com.bryanliu.superhermex`
+- SKU: `hermex-super-ios`
 
 Steps:
 
 1. Validate the branch first: at minimum `git diff --check` plus a simulator build; run
    focused or full tests based on the branch's risk.
 2. Run the project script. It prepares the local signing keychain, uses a timestamp-like
-   `CURRENT_PROJECT_VERSION` by default, archives with the branch build config, and
-   uploads with the branch export config:
+   `CURRENT_PROJECT_VERSION` by default, resolves the bundle ID, refuses non-production
+   bundle IDs, archives the app, and uploads with the SuperHermex export config:
 
    ```zsh
-   scripts/push-branch-testflight
+   scripts/push-testflight
    ```
 
    To force a specific build number:
 
    ```zsh
-   BUILD_NUMBER=<unique-build-number> scripts/push-branch-testflight
+   BUILD_NUMBER=<unique-build-number> scripts/push-testflight
    ```
 
    If the script reports that the signing keychain is locked in a non-interactive shell,

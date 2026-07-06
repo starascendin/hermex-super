@@ -100,6 +100,7 @@ struct ChatView: View {
     @State private var composerIsFocused = false
     @State private var didApplyInitialComposerFocusPolicy = false
     @State private var shouldRestoreComposerFocusAfterPreview = false
+    @State private var shouldListenToNextVoiceReply = false
     @State private var responseCompletionNotificationTracker = ResponseCompletionNotificationTracker()
     @State private var responseCompletionBackgroundTask: UIBackgroundTaskIdentifier = .invalid
     @State private var activeStreamStatusRefreshTask: Task<Void, Never>?
@@ -182,6 +183,9 @@ struct ChatView: View {
             },
             onSendVoiceNote: { data, filename in
                 Task { await sendVoiceNote(audioData: data, filename: filename) }
+            },
+            onVoiceNoteRecordingStart: {
+                viewModel.stopListening()
             },
             onCancel: {
                 Task { await cancelStream() }
@@ -1167,6 +1171,7 @@ struct ChatView: View {
         )
 
         if didSend {
+            shouldListenToNextVoiceReply = true
             ChatHaptics.messageSent(isEnabled: isHapticsEnabled)
         }
 
@@ -1610,9 +1615,17 @@ struct ChatView: View {
 
         Task { @MainActor in
             defer { endResponseCompletionBackgroundTask() }
+            let shouldAutoListen = shouldListenToNextVoiceReply
+            if shouldAutoListen {
+                shouldListenToNextVoiceReply = false
+            }
 
             if viewModel.responseCompletionNeedsTranscriptRefresh {
                 await loadMessages()
+            }
+
+            if shouldAutoListen {
+                _ = viewModel.listenToLatestAssistantResponse()
             }
 
             await ResponseCompletionNotificationService.scheduleResponseCompletedIfAllowed(

@@ -6,13 +6,15 @@ SCHEME="${SCHEME:-HermesMobile}"
 CONFIGURATION="${CONFIGURATION:-Release}"
 BUILD_NUMBER="${BUILD_NUMBER:-$(date +%Y%m%d%H%M)}"
 BUILD_DIR="${BUILD_DIR:-build}"
-ARCHIVE_PATH="${ARCHIVE_PATH:-$BUILD_DIR/HermesAgentBranch.xcarchive}"
-EXPORT_PATH="${EXPORT_PATH:-$BUILD_DIR/HermesAgentBranchExport}"
-BRANCH_XCCONFIG="${BRANCH_XCCONFIG:-Config/BranchTestFlight.xcconfig}"
-EXPORT_OPTIONS_PLIST="${EXPORT_OPTIONS_PLIST:-Config/BranchTestFlightExportOptions.plist}"
-KEYCHAIN="${IOS_BUILD_KEYCHAIN:-$HOME/Library/Keychains/lifeos-build.keychain-db}"
+ARCHIVE_PATH="${ARCHIVE_PATH:-$BUILD_DIR/HermexSuper-$BUILD_NUMBER.xcarchive}"
+EXPORT_PATH="${EXPORT_PATH:-$BUILD_DIR/HermexSuperExport-$BUILD_NUMBER}"
+EXPORT_OPTIONS_PLIST="${EXPORT_OPTIONS_PLIST:-Config/HermexSuperTestFlightExportOptions.plist}"
+KEYCHAIN="${IOS_BUILD_KEYCHAIN:-$HOME/Library/Keychains/hermex-build-2.keychain-db}"
 KEYCHAIN_PASSWORD_FILE="${IOS_BUILD_KEYCHAIN_PASSWORD_FILE:-$HOME/.config/hermex/ios-build-keychain-password}"
 SKIP_KEYCHAIN_PREP="${SKIP_IOS_BUILD_KEYCHAIN_PREP:-0}"
+EXPECTED_BUNDLE_ID="com.bryanliu.superhermex"
+
+export IOS_BUILD_KEYCHAIN="$KEYCHAIN"
 
 if [[ -z "${IOS_BUILD_KEYCHAIN_PASSWORD:-}" && -r "$KEYCHAIN_PASSWORD_FILE" ]]; then
   IOS_BUILD_KEYCHAIN_PASSWORD="$(<"$KEYCHAIN_PASSWORD_FILE")"
@@ -49,18 +51,17 @@ prepare_signing_keychain() {
     if security show-keychain-info "$KEYCHAIN" >/dev/null 2>&1; then
       echo "Signing keychain is already unlocked; continuing without keychain prep."
       return
-    else
-      cat >&2 <<EOF
+    fi
+
+    cat >&2 <<EOF
 Signing keychain is locked and this shell cannot prompt for its password.
 
 Run this from an interactive terminal so the keychain helper can prompt, or set
-IOS_BUILD_KEYCHAIN_PASSWORD for this command. If you already unlocked and
-prepared $KEYCHAIN in the same login session, rerun after confirming:
-
-  security show-keychain-info "$KEYCHAIN"
+IOS_BUILD_KEYCHAIN_PASSWORD for this command. If the keychain was already
+unlocked and prepared in the same login session, rerun with
+SKIP_IOS_BUILD_KEYCHAIN_PREP=1.
 EOF
-      exit 1
-    fi
+    exit 1
   fi
 
   if command -v prepare-ios-signing-keychain >/dev/null 2>&1; then
@@ -71,11 +72,35 @@ EOF
   "$HOME/bin/prepare-ios-signing-keychain"
 }
 
+resolved_bundle_id="$(
+  xcodebuild \
+    -showBuildSettings \
+    -project "$PROJECT_PATH" \
+    -scheme "$SCHEME" \
+    -configuration "$CONFIGURATION" 2>/dev/null \
+    | awk -F'= ' '/^[[:space:]]*PRODUCT_BUNDLE_IDENTIFIER = / {print $2; exit}'
+)"
+
+if [[ "$resolved_bundle_id" != "$EXPECTED_BUNDLE_ID" ]]; then
+  cat >&2 <<EOF
+Refusing to upload unexpected bundle ID: ${resolved_bundle_id:-<empty>}
+Expected: $EXPECTED_BUNDLE_ID
+
+This script only uploads the real SuperHermex app. It will not upload a
+side-by-side, suffixed, or branch bundle ID.
+EOF
+  exit 2
+fi
+
 prepare_signing_keychain
 mkdir -p "$BUILD_DIR"
-rm -rf "$ARCHIVE_PATH" "$EXPORT_PATH"
 
-echo "Archiving $SCHEME build $BUILD_NUMBER for Hermex Branch..."
+if [[ -e "$ARCHIVE_PATH" || -e "$EXPORT_PATH" ]]; then
+  echo "Archive/export path already exists for build $BUILD_NUMBER; choose a new BUILD_NUMBER." >&2
+  exit 1
+fi
+
+echo "Archiving $SCHEME build $BUILD_NUMBER for SuperHermex ($EXPECTED_BUNDLE_ID)..."
 if [[ "$has_auth_args" == "1" ]]; then
   xcodebuild \
     -project "$PROJECT_PATH" \
@@ -83,7 +108,6 @@ if [[ "$has_auth_args" == "1" ]]; then
     -configuration "$CONFIGURATION" \
     -destination "generic/platform=iOS" \
     -archivePath "$ARCHIVE_PATH" \
-    -xcconfig "$BRANCH_XCCONFIG" \
     -allowProvisioningUpdates \
     "${auth_args[@]}" \
     DEVELOPMENT_TEAM="87BJNUS53C" \
@@ -97,7 +121,6 @@ else
     -configuration "$CONFIGURATION" \
     -destination "generic/platform=iOS" \
     -archivePath "$ARCHIVE_PATH" \
-    -xcconfig "$BRANCH_XCCONFIG" \
     -allowProvisioningUpdates \
     DEVELOPMENT_TEAM="87BJNUS53C" \
     CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
@@ -105,7 +128,7 @@ else
     archive
 fi
 
-echo "Uploading archive to App Store Connect..."
+echo "Uploading SuperHermex archive to App Store Connect..."
 if [[ "$has_auth_args" == "1" ]]; then
   xcodebuild \
     -exportArchive \
@@ -123,4 +146,4 @@ else
     -allowProvisioningUpdates
 fi
 
-echo "Uploaded Hermex Branch build $BUILD_NUMBER."
+echo "Uploaded SuperHermex build $BUILD_NUMBER."

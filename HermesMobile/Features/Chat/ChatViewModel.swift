@@ -3373,6 +3373,20 @@ final class ChatViewModel {
         }
     }
 
+    @discardableResult
+    func listenToLatestAssistantResponse() -> Bool {
+        flushPendingStreamingContent()
+        guard let index = messages.lastIndex(where: { $0.role == "assistant" }),
+              let context = actionContext(for: messages[index], visibleIndex: index),
+              context.listenText?.isEmpty == false
+        else {
+            return false
+        }
+
+        toggleListening(to: context)
+        return true
+    }
+
     func stopListening() {
         // Cancel any in-flight server-TTS fetch so a late response can't start
         // audio after the user asked to stop (or switched messages).
