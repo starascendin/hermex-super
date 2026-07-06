@@ -1,3 +1,9 @@
+## Update for the fork
+
+I deployed hermes + hermes-webui to a vm:
+ssh hermes@100.78.186.127
+
+
 # AGENTS.md — working agreement for Hermex
 
 Hermex is a native SwiftUI iPhone app (Xcode target/scheme `HermesMobile`, App Store
